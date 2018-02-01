@@ -1,0 +1,17 @@
+name: screencap
+version: 0.1.0
+
+authors:
+  - Robin Broda <robin@broda.me>
+
+targets:
+  screencap:
+    main: src/screencap.cr
+
+dependencies:
+  x11:
+    github: TamasSzekeres/x11-cr
+
+crystal: 0.24.1
+
+license: MIT
