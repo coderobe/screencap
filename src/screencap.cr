@@ -1,14 +1,18 @@
 require "./screencap/*"
 
 require "x11"
+require "stumpy_png"
 
 module Screencap
   include X11
+  include StumpyPNG
 
   @@display = uninitialized X11::Display
   @@root = uninitialized X11::Window
   @@gc = uninitialized Pointer(UInt8)
   @@dimensions = [] of (Int32 | UInt32)
+  @@width = 0
+  @@height = 0
 
   def self.renderer(dimensions)
     puts "drawing at #{@@dimensions[0]}x#{@@dimensions[1]}"
@@ -32,11 +36,37 @@ module Screencap
     @@display = xdisplay
 
     screen = X11::C.default_screen display
-    root = X11::C.root_window display, screen
-    @@root = root
-
+    @@width = X.display_width display, screen
+    @@height = X.display_height display, screen
     pixel_black = X11::C.black_pixel display, screen
     pixel_white = X11::C.white_pixel display, screen
+
+    root = X11::C.root_window display, screen
+
+    # img = X.get_image display, root,
+    #  0, 0, @@width, @@height, X11::C::GCPlaneMask, X11::C::XYPixmap
+
+    @@root = X.create_simple_window display, root,
+      0, 0, @@width, @@height, 0, pixel_black, pixel_white
+
+    xattrs = X::SetWindowAttributes.new
+    # xattrs.background_pixmap = img
+    xattrs.override_redirect = 1
+    attrs = X11::SetWindowAttributes.new xattrs
+
+    X.change_window_attributes display, @@root,
+      (CWBackPixmap | CWOverrideRedirect).to_u64, attrs
+
+    changes = X11::WindowChanges.new
+    changes.stack_mode = X11::C::Above
+    X.configure_window display, @@root,
+      (CWStackMode).to_u64, changes
+
+    X.set_transient_for_hint display, @@root, root
+    X.map_window display, @@root
+
+    img = X.get_image display, @@root,
+      0, 0, @@width, @@height, X.all_planes, X11::C::XYPixmap
 
     gcvalues = X::GCValues.new
     gcvalues.foreground = pixel_white
@@ -91,7 +121,7 @@ module Screencap
         when ButtonRelease
           puts "up"
           clicked = false
-          break # die
+          break # leave
         when MotionNotify
           puts "motion"
           if clicked
@@ -116,6 +146,22 @@ module Screencap
         end
       end
     end
+
+    canvas = Canvas.new @@dimensions[2].to_i32, @@dimensions[3].to_i32
+    @@dimensions[2].times do |x|
+      @@dimensions[3].times do |y|
+        pixel = X.get_pixel img, @@dimensions[0] + x, @@dimensions[1] + y
+        bpixel = Utils.uint32_to_bytes pixel
+
+        rgbapixel = RGBA.from_rgb bpixel[1], bpixel[2], bpixel[3]
+        canvas[x, y] = rgbapixel
+      end
+    end
+
+    StumpyPNG.write canvas, "test.png"
+
+    X.destroy_window display, @@root
+    X.close_display display
   end
 
   main
