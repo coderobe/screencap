@@ -15,5 +15,3 @@ dependencies:
     github: stumpycr/stumpy_png
 
 crystal: 0.24.1
-
-license: MIT
