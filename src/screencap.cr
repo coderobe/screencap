@@ -5,6 +5,20 @@ require "x11"
 module Screencap
   include X11
 
+  @@display = uninitialized X11::Display
+  @@root = uninitialized X11::Window
+  @@gc = uninitialized Pointer(UInt8)
+  @@dimensions = [] of (Int32 | UInt32)
+
+  def self.renderer(dimensions)
+    puts "drawing at #{@@dimensions[0]}x#{@@dimensions[1]}"
+    puts "size #{@@dimensions[2]}x#{@@dimensions[3]}"
+    @@display.draw_rectangle @@root.as(X11::C::Drawable), @@gc,
+      dimensions[0].as(Int32), dimensions[1].as(Int32),
+      dimensions[2].as(UInt32), dimensions[3].as(UInt32)
+    @@display.flush
+  end
+
   def self.main
     display = uninitialized X::PDisplay
     display = X.open_display nil
@@ -15,21 +29,24 @@ module Screencap
     end
     puts "Display opened"
     xdisplay = X11::Display.new display
+    @@display = xdisplay
 
     screen = X11::C.default_screen display
     root = X11::C.root_window display, screen
+    @@root = root
+
     pixel_black = X11::C.black_pixel display, screen
     pixel_white = X11::C.white_pixel display, screen
 
     gcvalues = X::GCValues.new
     gcvalues.foreground = pixel_white
     gcvalues.background = pixel_black
-    gcvalues.function = X11::C::GXxor
+    gcvalues.function = X11::C::GXinvert
     gcvalues.plane_mask = pixel_black ^ pixel_white
     gcvalues.subwindow_mode = X11::C::IncludeInferiors
     gcvalues.line_width = 1
     gcvalues.line_style = X11::C::LineOnOffDash
-    gcvalues.fill_style = X11::C::FillSolid
+    gcvalues.fill_style = X11::C::FillOpaqueStippled
     xgcvalues = GCValues.new pointerof(gcvalues)
 
     valuemap_raw = X11::C::GCFunction | X11::C::GCForeground |
@@ -41,6 +58,7 @@ module Screencap
     gc = xdisplay.create_gc root.as(X11::C::Drawable),
       valuemap,
       xgcvalues
+    @@gc = gc
 
     pointer = X.create_font_cursor display, X11::C::XC_CROSSHAIR
     X.grab_pointer display, root, 0,
@@ -62,9 +80,8 @@ module Screencap
     loop do
       puts "loop"
       if X.pending display
-        puts "event pending"
         X.next_event display, pointerof(event)
-        puts "checking event"
+        print "event pending: "
         case event.type
         when ButtonPress
           puts "down"
@@ -76,15 +93,9 @@ module Screencap
           clicked = false
           break # die
         when MotionNotify
+          puts "motion"
           if clicked
             p event.button.inspect
-
-            if dimensions.size > 0
-              xdisplay.draw_rectangle root.as(X11::C::Drawable), gc,
-                dimensions[0].as(Int32), dimensions[1].as(Int32),
-                dimensions[2].as(UInt32), dimensions[3].as(UInt32)
-              xdisplay.flush
-            end
 
             rect_x_end = event.button.x_root
             rect_y_end = event.button.y_root
@@ -92,17 +103,13 @@ module Screencap
             dimensions = [
               Math.min(rect_x_start, rect_x_end),     # x
               Math.min(rect_y_start, rect_y_end),     # y
-              (rect_x_start - rect_x_end).abs.to_u32, # x2 (width)
-              (rect_y_start - rect_y_end).abs.to_u32, # y2 (height)
+              (rect_x_start - rect_x_end).abs.to_u32, # width
+              (rect_y_start - rect_y_end).abs.to_u32, # height
             ]
 
-            puts "drawing at #{dimensions[0]}x#{dimensions[1]}"
-            puts "size #{dimensions[2]}x#{dimensions[3]}"
-
-            xdisplay.draw_rectangle root.as(X11::C::Drawable), gc,
-              dimensions[0].as(Int32), dimensions[1].as(Int32),
-              dimensions[2].as(UInt32), dimensions[3].as(UInt32)
-            xdisplay.flush
+            renderer @@dimensions unless @@dimensions.size < 4
+            @@dimensions = dimensions
+            renderer @@dimensions
           end
         when Event
           break
