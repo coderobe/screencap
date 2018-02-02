@@ -11,6 +11,8 @@ targets:
 dependencies:
   x11:
     github: TamasSzekeres/x11-cr
+  stumpy_png:
+    github: stumpycr/stumpy_png
 
 crystal: 0.24.1
 
