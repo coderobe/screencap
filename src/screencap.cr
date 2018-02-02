@@ -15,8 +15,6 @@ module Screencap
   @@height = 0
 
   def self.renderer(dimensions)
-    puts "drawing at #{@@dimensions[0]}x#{@@dimensions[1]}"
-    puts "size #{@@dimensions[2]}x#{@@dimensions[3]}"
     @@display.draw_rectangle @@root.as(X11::C::Drawable), @@gc,
       dimensions[0].as(Int32), dimensions[1].as(Int32),
       dimensions[2].as(UInt32), dimensions[3].as(UInt32)
@@ -31,7 +29,6 @@ module Screencap
       puts "Failed to open display"
       return 1
     end
-    puts "Display opened"
     xdisplay = X11::Display.new display
     @@display = xdisplay
 
@@ -43,13 +40,13 @@ module Screencap
 
     root = X11::C.root_window display, screen
 
-    # img = X.get_image display, root,
-    #  0, 0, @@width, @@height, X11::C::GCPlaneMask, X11::C::XYPixmap
-
     @@root = X.create_simple_window display, root,
       0, 0, @@width, @@height, 0, pixel_black, pixel_white
 
     xattrs = X::SetWindowAttributes.new
+    # CDR: turns out not setting this but keeping CWBackPixmap
+    #      enabled causes the background to inherit whatever is below
+    #      which is just what we need.
     # xattrs.background_pixmap = img
     xattrs.override_redirect = 1
     attrs = X11::SetWindowAttributes.new xattrs
@@ -97,8 +94,6 @@ module Screencap
       X11::C::GrabModeAsync, X11::C::GrabModeAsync, root, pointer,
       0
 
-    puts "Event loop"
-
     clicked = false
     rect_x_start = 0
     rect_y_start = 0
@@ -108,7 +103,6 @@ module Screencap
 
     event = uninitialized X::Event
     loop do
-      puts "loop"
       if X.pending display
         X.next_event display, pointerof(event)
         print "event pending: "
@@ -153,8 +147,7 @@ module Screencap
         pixel = X.get_pixel img, @@dimensions[0] + x, @@dimensions[1] + y
         bpixel = Utils.uint32_to_bytes pixel
 
-        rgbapixel = RGBA.from_rgb bpixel[1], bpixel[2], bpixel[3]
-        canvas[x, y] = rgbapixel
+        canvas[x, y] = RGBA.from_rgb bpixel[1], bpixel[2], bpixel[3]
       end
     end
 
