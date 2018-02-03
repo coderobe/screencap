@@ -141,6 +141,8 @@ module Screencap
       end
     end
 
+    return if @@dimensions.size < 4 # didn't select an area
+
     canvas = Canvas.new @@dimensions[2].to_i32, @@dimensions[3].to_i32
     @@dimensions[2].times do |x|
       @@dimensions[3].times do |y|
