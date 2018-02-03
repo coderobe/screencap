@@ -18,6 +18,7 @@ module Screencap
   @@height = uninitialized Int32
 
   def self.draw_selection(xdisplay, window, gc, dimensions)
+    return if dimensions.size < 4
     xdisplay.draw_rectangle window.as(X11::C::Drawable), gc,
       dimensions[0].as(Int32), dimensions[1].as(Int32),
       dimensions[2].as(UInt32), dimensions[3].as(UInt32)
