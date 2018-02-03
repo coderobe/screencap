@@ -8,7 +8,12 @@ Take screenshots. X11-only. WIP.
 
 ## Usage
 
-`bin/screencap`
+```
+Usage: screencap [arguments]
+    -a, --area                       Create an area screenshot
+    -f, --full                       Create a screenshot of the entire screen
+    -h, --help                       Show this help
+```
 
 ## Contributors
 
