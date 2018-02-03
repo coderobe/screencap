@@ -4,7 +4,7 @@ Take screenshots. X11-only. WIP.
 
 ## Installation
 
-`shards build`
+`shards build -DXUTIL_DEFINE_FUNCTIONS`
 
 ## Usage
 
