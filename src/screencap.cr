@@ -193,20 +193,22 @@ module Screencap
 
     return if selection.size < 4 # didn't select an area
 
-    image = capture @@display, @@window,
-      selection[0], selection[1], selection[2], selection[3]
+    x, y, width, height = selection
+
+    image = capture @@display, @@window, x, y, width, height
 
     # clean up
     X.destroy_window @@display, @@window
     X.close_display @@display
 
     # save image
-    canvas = Canvas.new selection[2].to_i32, selection[3].to_i32
-    selection[2].times do |x|
-      selection[3].times do |y|
+    canvas = Canvas.new width.to_i32, height.to_i32
+
+    width.times do |x|
+      height.times do |y|
         pixel = X.get_pixel image, x, y
-        bytes = Utils.uint32_to_bytes pixel
-        canvas[x, y] = RGBA.from_rgb bytes[1], bytes[2], bytes[3]
+        r, g, b = {16, 8, 0}.map { |n| (pixel >> n & 0xff).to_u8 }
+        canvas[x, y] = RGBA.from_rgb r, g, b
       end
     end
 
