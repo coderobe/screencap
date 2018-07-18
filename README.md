@@ -11,6 +11,7 @@ Take screenshots. X11-only. WIP.
 ```
 Usage: screencap [arguments]
     -a, --area                       Create an area screenshot
+    -w, --window                     Create a screenshot of the active window
     -f, --full                       Create a screenshot of the entire screen
     -h, --help                       Show this help
 ```
