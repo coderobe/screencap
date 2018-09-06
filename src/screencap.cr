@@ -238,7 +238,7 @@ module Screencap
     width.times do |x|
       height.times do |y|
         pixel = X.get_pixel image, x, y
-        canvas[x, y] = RGBA.new *{16, 8, 0}.map { |n| ((pixel >> n & UInt8::MAX).to_f / UInt8::MAX * UInt16::MAX).to_u16 }, UInt16::MAX
+        canvas[x, y] = RGBA.new *{16, 8, 0}.map { |n| ((pixel >> n & UInt8::MAX).to_f / UInt8::MAX * UInt16::MAX).to_u16 }
       end
     end
 
